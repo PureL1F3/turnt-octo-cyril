@@ -58,7 +58,7 @@ def start_ffmeg_hlsgen(vtype, requestid, src_path, dest_path):
     dest_playlist_path = 'playlist.m3u8'
     dest_segmentfmt_path = 'out%03d.ts'
     
-    ffmpeg_cmd = r'ffmpeg -i "{0}" -map 0 -codec:v libx264 -codec:a libfaac -f ssegment -segment_list {1} -segment_list_flags +live -segment_time 1 {2}'.format(src_path, dest_playlist_path, dest_segmentfmt_path)
+    ffmpeg_cmd = r'ffmpeg -i "{0}" -map 0 -codec:v libx264 -codec:a libfaac -f ssegment -segment_list {1} -segment_list_flags +live -segment_time 10 {2}'.format(src_path, dest_playlist_path, dest_segmentfmt_path)
     output_file = open(logfile, 'a')
     logger.info('Preparing to run ffmpeg with command:\n{0}'.format(ffmpeg_cmd))
     p = subprocess.Popen(ffmpeg_cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
@@ -68,6 +68,7 @@ def start_ffmeg_hlsgen(vtype, requestid, src_path, dest_path):
     for i in range(FFMPEG_MAX_WAIT_FOR_PLAYLIST):
         time.sleep(FFMPEG_CREATE_WAIT)
         if os.path.exists(dest_playlist_path):
+            time.sleep(10)
             UpdateRequestPlaylistCreated(vtype, requestid, dest_playlist_path)
             playlistAvailable = True
             break
