@@ -76,13 +76,76 @@ def FinishWithError(requestid, error):
     cnx.close()
     sys.exit()
     
+def GetSmallestUrl(extractor, result):
+    extractor = extractor.lower()
+    url = None
+    if extractor == 'vine':
+        url = GetVineSmallestUrl(result)
+    elif extractor == 'youtube':
+        url = GetYoutubeSmallestUrl(result)
+    elif extractor == 'vimeo':
+        url = GetVimeoSmallestUrl(result)
+    
+    if url is None:
+        url = result['url']
+    return url
+
 def FinishWithSuccess(requestid, result, url, title, vtype, length):
     logger.info('Finished with success: {0}'.format(result))
     cursor = cnx.cursor()
-    args = (requestid, result['url'], result['title'], json.dumps(result), result['extractor'], 0)
+    extractor = result['extractor']
+    url = GetSmallestUrl(extractor, result)
+    args = (requestid, url, result['title'], json.dumps(result), extractor, 0)
     cursor.callproc('request_create_extractresult', args)
     cursor = cnx.cursor()
     cnx.close()
+
+def GetYoutubeSmallestUrl(result):
+    smallest_url = None
+    try:
+        good_format_ids = ("36", "5", "18")
+        good_formats = {}
+        result_formats = result['formats']
+        for f in result_formats:
+            if f['format_id'] in good_format_ids:
+                good_formats[f['format_id']] = f['url']
+        for f in good_format_ids:
+            if f in good_formats.keys():
+                smallest_url = good_formats[f]
+                break
+    except:
+        logger.info('Error running smallest vine url:\n: {0}'.format(traceback.print_exc()))
+    return smallest_url    
+
+def GetVineSmallestUrl(result):
+    smallest_url = None
+    try:
+        result_formats = result['formats']
+        smallest_url = None
+        for f in result_formats:
+            if f['format_id'] == 'low':
+                smallest_url = f['url']
+                break
+    except:
+	logger.info('Error running smallest vine url:\n: {0}'.format(traceback.print_exc()))
+    return smallest_url
+
+def GetVimeoSmallestUrl(result):
+    smallest_url = None
+    try:
+        result_formats = result["formats"]
+        smallest_format = None
+        smallest_area = 1000000000
+        smallest_url = None
+        for f in result_formats:
+            area = f['height'] * f['width']
+            if area < smallest_area:
+                smallest_format = f
+                smallest_area = area
+                smallest_url = f['url']
+    except:
+        logger.info('Error running smallest vimeo url:\n: {0}'.format(traceback.print_exc()))
+    return smallest_url
 
 logger = get_logger(logfile)
 if __name__ == '__main__':
